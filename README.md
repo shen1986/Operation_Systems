@@ -485,3 +485,41 @@ $ objdump -M i386,intel -D hello | less
 - -M i386告诉objdump使用32位布局显示程序集内容。了解32位和64位之间的区别对于编写内核代码至关重要。稍后在编写内核时，我们将研究这个问题。
 
 2. 读取输出
+- 在输出的开头显示对象文件的文件格式：
+```
+hello: file format elf64-x86-64
+```
+- 在这行之后是一系列的反汇编部分
+```
+Disassembly of section .interp:
+...
+Disassembly of section .note.ABI-tag:
+...
+Disassembly of section .note.gnu.build-id:
+...
+...
+etc
+```
+- 最后，每一分段显示其实际内容——这是一个序列的组合指令——以下列格式：
+- <font color=red>4004d6</font>:&emsp;<font color=blue>55</font>&emsp;&emsp;<font color=green>push   rbp</font>
+    + <font color=red>第一列</font>是汇编指令的地址。在上面的示例中，地址是0x4004d6。
+    + <font color=blue>第二列</font>是原始十六进制值中的汇编指令。在上面的示例中，该值为0x55。
+    + <font color=green>第三列</font>是汇编指令。根据节的不同，汇编指令可能有意义或无意义。例如，如果汇编指令位于.text节中，那么汇编指令就是实际的程序代码。另一方面，如果汇编指令显示在.data节中，则可以安全地忽略显示的指令。原因是objdump不知道哪些十六进制值是代码，哪些是数据，所以它盲目地将每个十六进制值转换为汇编指令。在上面的例子中，汇编指令是push%rbp。
+    + 可选的第四列是一个注释（当有地址引用时出现），用于通知地址的来源。例如，<font color=blue>蓝色</font>的注释：
+        * lea r12,<font color=red>[rip+0x2008ee]</font>&emsp;&emsp;<font color=blue># 600e10 <__frame_dummy_init_array_entry></font>
+    + 通知来自[rip+0x2008ee]的引用地址是0x600e10，变量frame_dummy_init_array_entry所在的位置。
+- 在反汇编部分中，它也可能包含标签。标签是赋予汇编指令的名称。标签向人类读取器指示装配块的用途，使其更易于理解。例如，**.text**节携带许多这样的标签来表示程序中代码的开始位置；下面的text节携带两个函数：<font color=red>_start</font>和<font color=red>deregister_tm_clones</font>。<font color=red>_start</font>函数从地址<font color=blue>4003e0</font>开始，在函数名的左侧注释。右下方的起始标签也是地址<font color=blue>4003e0</font>处的指令。这意味着标签只是一个内存地址的名称。函数**deregister_tm_clones**也与节中的每个函数共享相同的格式。
+
+[图]
+
+3. 英特尔手册
+- 正确理解和使用汇编语言的最好方法是准确理解底层的计算机体系结构和每一条机器指令的作用。为此，最可靠的来源是参考供应商提供的文件。毕竟，硬件供应商是制造机器的人。要了解英特尔的指令集，我们需要文档“英特尔64与IA-32体系结构软件开发人员手册，结合了第2A、2B、2C和2D卷：指令集参考，A-Z”。文档可在以下位置检索：https://software.intel.com/en-us/articles/intel-sdm。
+    + 第一章提供了手册的简要信息，以及书中使用的注释。
+    + 第2章对装配式教学的解剖学进行了深入的解释，我们将在下一节中对此进行研究。
+    + 第3-5章提供了x86_64体系结构的每个指令的详细信息。
+    + 第6章提供有关安全模式扩展的信息。我们不需要用这一章。
+- 第一卷“英特尔64与IA-32体系结构软件开发人员手册第一卷：基本体系结构”介绍了英特尔处理器的基本体系结构和编程环境。在这本书中，第5章通过将指令分为不同的类别给出了所有英特尔指令的摘要。我们只需要学习第5.1章列出的操作系统通用说明。第7章描述了每一类的目的。渐渐地，我们将学习所有这些指令。
+- 练习4.3.1。阅读第2卷第1.3节，不包括第1.3.5节和第1.3.7节。
+
+4. 测试汇编代码
+- 随后的章节将检查装配装置的解剖结构。要完全理解，有必要编写代码并将代码的实际形式显示为十六进制数。为此，我们使用nasm assembler编写几行汇编代码并查看生成的代码。
